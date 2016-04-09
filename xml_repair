@@ -1,0 +1,183 @@
+#!/usr/bin/python
+import xml.sax as sax
+import xml.sax.handler as handler
+import xml.sax.saxutils as saxutils
+from optparse import OptionParser
+import sys
+import pprint
+import re
+import codecs
+import os
+
+artist_field_map  = {
+"MyRadioType":"MYRADIOTYPE",
+"Genre":"GENRE","Musicalstyle":"GENRE","Genres":"GENRE","genre":"GENRE","Style":"GENRE",
+"Yearsactive":"YEARS", "Formed":"YEARS","yearsactive":"YEARS", "Years_active":"YEARS","YearsActive":"YEARS", "Years_Active":"YEARS","Founded":"YEARS",
+"Label":"LABEL",
+"URL":"URL", "Website":"URL", "website":"URL", "url":"URL", "Url":"URL", "homepage":"URL",
+"Origin":"ORIGIN", "origin":"ORIGIN",
+"Associatedacts":"ASSOC",  "Relatedacts":"ASSOC", "Influences":"ASSOC",  "Associated_acts":"ASSOC", "Associated_Acts":"ASSOC", "AssociatedActs":"ASSOC", "AssociatedArtists":"ASSOC", "Similar_artists":"ASSOC", "Influenced":"ASSOC", "Associated":"ASSOC", "Associatedact":"ASSOC", "Collaborators":"ASSOC",
+"Background":"BACKGND",
+"Name":"NAME", "name":"NAME",
+"Img":"IMAGE", "Image":"IMAGE", "image":"IMAGE", "img":"IMAGE",
+"Currentmembers":"MEMBERS",  "Members":"MEMBERS", "LastLineUp":"MEMBERS", "CurrentMembers":"MEMBERS", "Currentmember":"MEMBERS", "currentmembers":"MEMBERS", "Current_members":"MEMBERS", "members":"MEMBERS",
+"Imgcapt":"CAPTION", "Img_capt":"CAPTION", "Imgcap":"CAPTION", "imgcaption":"CAPTION",
+"Pastmembers":"PASTMEMB", "Formermembers":"PASTMEMB", "Temporarymembers":"PASTMEMB", "Past_members":"PASTMEMB", "Past_Members":"PASTMEMB", "Unofficialmembers":"PASTMEMB",
+"Alias":"ALIAS",  "Also_Known_As":"ALIAS",  "Also_known_as":"ALIAS",
+"Instrument":"INSTRUMENT", "Noteableinstruments":"INSTRUMENT", "Instruments":"INSTRUMENT", "Notable_instruments":"INSTRUMENT", "Notable_Guitars":"INSTRUMENT", "Notable_Instruments":"INSTRUMENT",
+"Died":"DIED", "Death":"DIED", "deathdate":"DIED",
+"Born":"BORN",
+"Birthname":"BIRTHNAME", "Birth_name":"BIRTHNAME", "Birth_Name":"BIRTHNAME", "Birthnames":"BIRTHNAME",
+"Voicetype":"VOICE", "Voice_Type":"VOICE", "Voice_type":"VOICE", "VoiceType":"VOICE", "VoiceTypes":"VOICE", "Voice__Types":"VOICE"
+}
+
+album_field_map  = {
+"MyRadioType":"MYRADIOTYPE",
+"Name":"NAME", "Album":"NAME", "This_album":"NAME",  "This_Album":"NAME",  "This_EP":"NAME",
+"Next_album":"NEXTALBUM",  "Next_Album":"NEXTALBUM",  "Next_EP":"NEXTABLUM",
+"Last_album":"LASTABLUM", "Last_Album":"LASTALBUM",  "Last_EP":"LASTALBUM",
+"Genre":"GENRE", "Genres":"GENRE", "Category":"GENRE", "Style":"GENRE",
+"Label":"LABEL",
+"Producer":"PRODUCER", "Producers":"PRODUCER", "Executive_Producer":"PRODUCER", "Executive_Producers":"PRODUCER", "CoProducer":"PRODUCER",
+"Recorded":"RECORDED",
+"Artist":"ARTIST", "Artists":"ARTIST",
+"Released":"RELEASED", "Release":"RELEASED", "ReReleased":"RELEASED",
+"Cover":"COVER", "Img":"COVER", "Artwork":"COVER", "Image":"IMAGE",
+"Reviews":"REVIEW", "Review":"REVIEW"
+}
+
+class IndexHandler( handler.ContentHandler ):
+    def __init__(self,verbose = False,outfile="xml_repair.xml"):
+        handler.ContentHandler.__init__(self)
+        self.verbose = verbose
+        self.numParagraph = 0
+        self.noName = False
+        self.para = ""
+        self.doc = []
+        self.stack = []
+        self.name = None
+        self.myradiotype = None
+        self.out = codecs.open(outfile,"w","utf-8","replace")
+        
+    def push(self,newl):
+        self.stack.append(self.doc)
+        self.doc.append(newl)
+        self.doc = newl
+        
+    def pop(self):
+        self.doc = self.stack.pop()
+        
+    def startElement(self,name,attrs):
+        if name == "Metadata":
+            self.myradiotype = attrs.get("MyRadioType")
+            if "Name" not in attrs.keys():
+                self.noName = True
+        elif name == "Paragraph":
+            self.numParagraph += 1     
+        if self.para:
+            self.doc[2] += self.para
+            self.para = ""
+        self.push([name,attrs.items(),""])
+
+    def characters(self, content):
+        self.para += content
+        
+    def endElement(self,name):              
+        # if we didn't get metadata with a name, then get one from the first line of the first paragraph
+        if name == "Paragraph" and self.numParagraph == 1 and self.noName:
+            lines = self.para.split("\n")
+            for line in lines:
+                line = line.strip()
+                if line:
+                    self.name = line
+                    break
+        
+        # drop broken macros and blank lines
+        if "}}" in self.para:
+            foundMacroEnd = False
+            lines = self.para.split("\n")
+            self.para = ""
+            for line in lines:
+                line = line.strip()
+                if line:
+                    if foundMacroEnd:
+                        self.para += (line+"\n")
+                    elif "}}" in line:
+                        foundMacroEnd = True
+        # or just blank lines
+        else:
+            lines = self.para.split("\n")
+            self.para = ""
+            for line in lines:
+                line = line.strip()
+                if line:
+                    self.para += (line+"\n")
+          
+        self.doc[2] += self.para
+        self.para = ""
+        self.pop()
+
+    def printDoc( self, doc ):
+        tag = doc[0]
+        attrs = doc[1]
+        text = doc[2]
+        rest = doc[3:]
+        if tag == "Metadata" and self.noName:
+            attrs.append(("Name",self.name))
+        if not attrs and not text.strip() and not rest:
+            return
+        self.out.write("<%s"%(tag))
+
+        out_attrs = {}
+        for a in attrs:                             
+            attr = None
+            if self.myradiotype == "musical artist":
+                attr = artist_field_map.get(a[0],None)
+            elif self.myradiotype == "Album":
+                attr = album_field_map.get(a[0],None)
+            if attr:
+                if attr in out_attrs:
+                    out_attrs[attr] += (","+a[1])
+                else:
+                    out_attrs[attr] = a[1]
+                
+        for (attr,value) in out_attrs.items():
+            self.out.write(" %s=%s"%(attr,saxutils.quoteattr(value)))
+            
+        self.out.write(">\n")
+        self.out.write(saxutils.escape(text.strip()))
+        self.out.write("\n")
+        for l in rest:
+            self.printDoc(l)
+        self.out.write("</%s>\n"%(tag))
+        
+            
+    def endDocument(self):
+        self.out.write('<?xml version="1.0" encoding="UTF-8" ?>\n')
+        self.printDoc(self.doc[0])
+        self.numParagraph = 0
+        self.noName = False
+        self.para = ""
+        self.name = ""
+        self.doc = []
+        self.stack = []
+        self.myradiotype = None
+        
+        
+
+if __name__ == '__main__':
+    parser = OptionParser(usage="usage: %prog [options] input.xml output.xml", description="data cleaning tool for music xml files")
+    parser.add_option("-v","--verbose", dest="verbose", action="store_true", default=False, help="turn on debug output")
+    
+    (options,args) = parser.parse_args()
+    
+    if len(args) < 2:
+        sys.exit("Must specify one xml file for input and one for output")
+
+    handler = IndexHandler(options.verbose,args[1])
+    if options.verbose:
+        print "Process",dirpath,f
+    try:
+        sax.parse(open(args[0],"r"), handler)
+    except Exception,e:
+        print "File",args[0],"Error",str(e)

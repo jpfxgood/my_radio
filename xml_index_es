@@ -1,0 +1,107 @@
+#!/usr/bin/python
+import xml.sax as sax
+import xml.sax.handler as handler
+from optparse import OptionParser
+import sys
+import pprint
+import re
+import codecs
+import os
+import json
+import requests
+                  
+
+def clean( s ):
+    return re.sub("\W+","",re.sub("\s+","_",s.lower()))
+    
+class IndexHandler( handler.ContentHandler ):
+    def __init__(self,verbose = False):
+        handler.ContentHandler.__init__(self)
+        self.verbose = verbose
+        self.index_doc = {}
+        self.cur_name = None
+        
+    def startElement(self,name,attrs):
+        if name == "Document":
+            self.cur_name = None
+            self.index_doc = {}
+            return          
+        if name == "Section" or name == "Category":
+            self.cur_name = name
+            return
+        if name == "Paragraph":
+            if self.cur_name and self.cur_name.startswith("Section"):
+                return
+            self.cur_name = "Section_body"
+            if "Sections" not in self.index_doc:
+                self.index_doc["Sections"] = []
+            return
+            
+        if name not in self.index_doc:
+            self.index_doc[name] = {}
+        for k in attrs.keys():
+            self.index_doc[name][k] = attrs[k]
+
+    def characters(self, content):
+        content = content.strip()
+        if not content:
+            return
+        if self.cur_name == "Section":
+            if "Sections" not in self.index_doc:
+                self.index_doc["Sections"] = []
+            self.cur_name = "Section_"+clean(content)
+            return
+        if self.cur_name == "Category":
+            if "Categories" not in self.index_doc:
+                self.index_doc["Categories"] = []
+            self.index_doc["Categories"].append(clean(content.split(":",1)[1]))
+            return
+        if self.cur_name.startswith("Section"):
+            for i in self.index_doc["Sections"]:
+                if i["name"] == self.cur_name:
+                    i["content"].append(content)
+                    break
+            else:
+                self.index_doc["Sections"].append( { "name":self.cur_name, "content":[ content ] } )
+            return
+        if self.cur_name not in self.index_doc:
+            self.index_doc[self.cur_name] = []
+        self.index_doc[self.cur_name].append(content)
+        
+    def endElement(self,name):
+        if name.startswith("Section"):
+            self.cur_name = None
+        elif name == "Document":
+            print json.dumps(self.index_doc)
+            r = requests.post("http://localhost:9200/music/musicdoc/%s"%hash(str(self.index_doc["Metadata"])),data=json.dumps(self.index_doc))
+            r.raise_for_status()
+            if self.verbose:
+                print r.json()
+            self.index_doc = {}
+            self.cur_name = None
+            
+
+if __name__ == '__main__':
+    parser = OptionParser(usage="usage: %prog [options]", description="index music information from xml files")
+    parser.add_option("-v","--verbose", dest="verbose", action="store_true", default=False, help="turn on debug output")
+    parser.add_option("-l","--limit", dest="limit", type="int", default = -1, help="limit number of xml files to process")
+    
+    (options,args) = parser.parse_args()
+    
+    if len(args) < 1:
+        sys.exit("Must specify at least one path with xml files")
+
+    handler = IndexHandler(options.verbose) 
+    counter = 0
+    for (dirpath, dirnames, filenames) in os.walk(args[0]):
+        for f in filenames:
+            if re.match("^.*\.xml$",f):
+                if options.verbose:
+                    print "Process",dirpath,f
+                try:
+                    sax.parse(open(os.path.join(dirpath,f)), handler)
+                except Exception,e:
+                    print "File",os.path.join(dirpath,f),"Error",str(e)
+                counter += 1
+                if counter > options.limit and options.limit > 0:
+                    exit(0)

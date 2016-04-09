@@ -1,0 +1,155 @@
+#!/usr/bin/python
+import xml.sax as sax
+import xml.sax.saxutils as saxutils
+import xml.sax.handler as handler
+from optparse import OptionParser
+import sys
+from bz2 import BZ2File
+import pprint
+import mwlib
+from mwlib.refine.compat import parse_txt
+from mwlib.refine import core
+from mwlib.parser import nodes
+import re
+import codecs
+import os
+import string
+import time
+import threading
+import subprocess
+import wiki_module
+
+class ExtractThread(threading.Thread):
+    """ Thread to run a post to solr """
+    pool = []
+    queue = []
+    lock = threading.Lock()
+    exit_if_queue_empty = False
+    verbose = False
+    
+    def __init__(self):
+        threading.Thread.__init__(self,None,self.doProcess)
+        self.start()
+        
+    @classmethod
+    def init_pool(cls, num_threads= 4, verbose = False):
+        ExtractThread.verbose = verbose
+        while( num_threads ):
+            cls.pool.append(ExtractThread())
+            num_threads = num_threads - 1
+            
+        
+    @classmethod
+    def finish(cls):
+        cls.exit_if_queue_empty = True
+        for thread in cls.pool:
+            thread.join()
+        
+    @classmethod
+    def done(cls):
+        return cls.exit_if_queue_empty
+
+    @classmethod
+    def pop(cls):
+        cls.lock.acquire()
+        try:
+            if not cls.queue:
+                return None
+            return cls.queue.pop(0)
+        finally:
+            cls.lock.release()
+                
+    @classmethod
+    def push(cls, pargs):
+        cls.lock.acquire()
+        try:
+            cls.queue.append(pargs)
+        finally:
+            cls.lock.release()
+            
+    @classmethod
+    def remaining(cls):
+        return len(cls.queue)
+
+    def doProcess(self):
+        while(True):         
+            process = ExtractThread.pop()
+            if not process:
+                if ExtractThread.done():
+                    return
+                time.sleep(0.001)
+            else:
+                if ExtractThread.verbose:
+                    print "Extracting",process
+                    
+                wiki_module.extractPage(process[0],process[2],process[1],ExtractThread.verbose)
+                
+
+
+class WikiHandler( handler.ContentHandler ):
+    def __init__(self, numpages = -1, path = "./",nice = 0.01):
+        handler.ContentHandler.__init__(self)
+        self.wiki_text = ""
+        self.wiki_np = numpages
+        self.wiki_text_n = 0
+        self.path = path
+        self.restart = -1
+        self.nice = nice
+        if os.path.exists(os.path.join(self.path,"wiki_extract.start")):
+            rstr = open(os.path.join(self.path,"wiki_extract.start"),"r").read()
+            self.restart = int(rstr.strip())
+            print "Restarting at",self.restart
+        
+    def startElement(self,name,attrs):
+        pass
+        
+    def characters(self, content):
+        self.wiki_text += content
+        
+    def endElement(self,name):
+        if name == "text":
+            # rest the cpu
+            if self.nice > 0.0:
+                time.sleep(self.nice)
+            
+            # write the restart count for this run
+            open(os.path.join(self.path,"wiki_extract.start"),"w").write(str(self.wiki_text_n))
+                
+            # if we're restarting then just skip until we get to the text we want to 
+            # start on
+            if self.wiki_text_n < self.restart:
+                self.wiki_text_n += 1
+                self.wiki_text = ""
+                return
+                
+            if self.wiki_np >= 0 and self.wiki_text_n >= self.wiki_np:
+                print "Terminated after %d pages\n"%(self.wiki_text_n)
+                ExtractThread.finish()
+                sys.exit(0)
+                
+            ExtractThread.push((self.wiki_text_n,self.wiki_text,self.path))
+            self.wiki_text = ""
+            self.wiki_text_n += 1
+            
+
+if __name__ == '__main__':
+    parser = OptionParser(usage="usage: %prog [options]", description="extract music information from mediawiki input xml file")
+    parser.add_option("-v","--verbose", dest="verbose", action="store_true", default=False, help="turn on debug output")
+    parser.add_option("-n","--numpages", dest="numpages", type="int", default=-1, help="number of elements to output before terminating")
+    parser.add_option("-p","--path", dest="path", default="./", help="path to store the extracted pages")
+    parser.add_option("-N","--nice", dest="nice", type="float", default=0.01, help="float number of seconds to sleep per doc for cooling")
+    parser.add_option("-t","--threads", dest="threads", type="int", default=4, help="number of extraction threads")
+    
+    (options,args) = parser.parse_args()
+    
+    if len(args) < 1:
+        sys.exit("Must specify at least one xml file or bzipped file for input")
+        
+    if args[0].endswith("bz2"):
+        xml_stream = BZ2File(args[0])
+    else:
+        xml_stream = open(args[0])                        
+
+    ExtractThread.init_pool(options.threads,options.verbose)
+    sax.parse(xml_stream, WikiHandler(options.numpages,options.path,options.nice))
+    ExtractThread.finish()

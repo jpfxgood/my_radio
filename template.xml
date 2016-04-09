@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<template>
+    <text type="intro" voice="julie">
+    Welcome to radio me on %(day)s %(date)s, this is your deejay Julie and I've got a great show for you.
+    </text>
+    <text type="intro" voice="julie">
+    Well it is a lovely day for another edition of radio me on %(day)s %(date)s. I'm Julie and here comes the music.
+    </text>
+    <text type="intro" voice="julie">
+    It is %(day)s %(date)s and you're starting things off right with radio me. This is Julie and I'll be your spirit guide for this tour of your music universe.
+    </text>
+    <text type="intro" voice="julie">
+    This is Julie and radio me is fired up and ready to go on %(day)s %(date)s with an amazing selection of great music.
+    </text>
+    <text type="outro" voice="julie">
+    That's all for today, thanks for listening to radio me on %(day)s %(date)s. This is Julie saying have a great day.
+    </text>
+    <text type="outro" voice="julie">
+    That is our show for today, thanks for listening to radio me on %(day)s %(date)s. This is Julie signing off, I'll be back tommorrow with more great music.
+    </text>
+    <text type="outro" voice="julie">
+    Ok, this Julie and I've gotta go home now, I hope you enjoyed our show today! I'll be back tomorrow to spin some more great tunes.
+    </text>
+    <block repeat="8">
+        <tracks repeat="4">
+            <text type="intro" voice="julie">
+            Coming up next we're going to hear cuts from %(artist_list)s.
+            </text>
+            <text type="intro" voice="julie">
+            This next segment is sponsored by the Dana Cameron literary empire, find her latest Anna Hoyt colonial noir short story in the June issue of Ellery Queen Mystery Magazine. You are going to hear some amazing cuts from %(artist_list)s.
+            </text>
+            <text type="intro" voice="julie">
+            Ok, coming up next we've got a request from James on Facebook %(artist_0)s doing %(title_0)s. James says You gotta listen to this now! Then %(artist_1)s playing %(title_1)s, %(title_2)s by %(artist_2)s, and rounding things out %(artist_3)s on %(title_3)s.
+            </text>
+            <text type="intro" voice="julie">
+            Coming up in the next segment, we've got %(artist_0)s doing %(title_0)s, %(artist_1)s playing the crap out of %(title_1)s, %(title_2)s by %(artist_2)s, and rounding things out %(artist_3)s on %(title_3)s.
+            </text>
+            <text type="intro" voice="julie">
+            Next! Tracks from  %(artist_list)s, on radio me.
+            </text>
+            <text type="intro" voice="julie">
+            Wow, in the next segment we've got cuts from  %(artist_list)s, I can hardly wait.
+            </text>
+            <text type="outro" voice="julie">
+            First up was %(title_0)s performed by %(artist_0)s on the album %(album_0)s, followed by %(artist_1)s performing %(title_1)s off the %(album_1)s,
+            then there was %(artist_2)s's cut %(title_2)s off of %(album_2)s, finally we heard %(artist_3)s doing %(title_3)s from their %(album_3)s recording.
+            </text>
+            <text type="outro" voice="julie">
+            Wow what a great set of tracks! We had %(title_0)s performed by %(artist_0)s on the album %(album_0)s. Then  %(artist_1)s kicking it on %(title_1)s from the %(album_1)s recording.
+            %(title_2)s was performed by %(artist_2)s's on the album %(album_2)s. Last but not least we heard %(artist_3)s doing %(title_3)s from the %(album_3)s recording.
+            </text>
+            <text type="outro" voice="julie">
+            In the last set we heard: %(title_0)s by %(artist_0)s,  %(artist_1)s doing %(title_1)s, %(artist_2)s's cut %(title_2)s, and %(artist_3)s playing %(title_3)s.
+            </text>
+            <text type="outro" voice="julie">
+            Time for a break for some news, weather and announcements. We just heard %(artist_0)s on the album %(album_0)s,  %(artist_1)s off the %(album_1)s recording,
+            then there was %(artist_2)s on  %(album_2)s, finally it was %(artist_3)s.
+            </text>
+            <artist type="outro">
+                <text type="intro" voice="julie">
+                Speaking of %(this_artist)s did you know that
+                </text>
+                <text type="intro" voice="julie">
+                An interesting thing about %(this_artist)s is 
+                </text>
+                <text type="intro" voice="julie">
+                Wow, I really like %(this_artist)s! I was just reading that
+                </text>
+                <text type="intro" voice="julie">
+                %(this_artist)s is really great, at radio me headquarters we were just discussing that
+                </text>
+                <text type="intro" voice="julie">
+                Ok, I know you want some facts about %(this_artist)s. My notes tell me that 
+                </text>
+                <text type="intro" voice="julie">
+                %(this_artist)s, %(this_artist)s, %(this_artist)s, wow, I was just remembering that
+                </text>
+
+            </artist>
+            <track type="outro">
+                <text type="intro" voice="julie">
+                That was  %(this_track)s by %(this_artist)s.
+                </text>
+                <text type="intro" voice="julie">
+                We just heard  %(this_track)s by %(this_artist)s.
+                </text>
+                <text type="intro" voice="julie">
+                All right then, radio me bringing you  %(this_track)s by %(this_artist)s.
+                </text>
+                <text type="outro" required="next_track,next_artist" voice="julie">
+                Coming up next %(next_track)s by %(next_artist)s.
+                </text>
+                <text type="outro" required="next_track,next_artist" voice="julie">
+                Next up on radio me %(next_track)s by %(next_artist)s.
+                </text>
+                <text type="outro" required="next_track,next_artist" voice="julie">
+                Radio me bringing you the best music all the time! And now %(next_track)s by %(next_artist)s.
+                </text>
+            </track>
+            <album type="outro">
+                <text type="intro" voice="julie">
+                About the album %(this_album)s
+                </text>
+                <text type="intro" voice="julie">
+                So, how about the album %(this_album)s did you know that
+                </text>
+                <text type="intro" voice="julie">
+                %(this_album)s is a great album by %(this_artist)s! I was reading on wikipedia the other day that 
+                </text>
+                <text type="intro" voice="julie">
+                We have some notes about the album %(this_album)s, lets see:
+                </text>
+                <text type="intro" voice="julie">
+                I was just looking up %(this_album)s on the web. I see here that
+                </text>
+
+            </album>
+        </tracks>
+        <news freq="2">
+            <text type="intro" voice="paul">
+            And now some news from %(news_source)s sponsored by Roy's Buddist Teaching Center, get your life centered, call 555-1234 for class times and locations.
+            </text>
+            <text type="intro" voice="paul">
+            Here are some headlines from %(news_source)s sponsored by Television Show You'd Like, on every Thursday right when you need something to be on.
+            </text>
+            <text type="intro" voice="paul">
+            %(news_source)s providing up to the minute news, up next sponsored by Kitchen Tools from a television chef, you can click on the coupon on your phone and take advantage of the offer.
+            </text>
+        </news>
+        <weather freq="2">
+            <text type="intro" voice="bridget">
+            The weather report from %(weather_source)s sponsored by A National Life Insurance Company you can get better rates from them click on the add on your phone to have a representative contact you.
+            </text>
+            <text type="intro" voice="bridget">
+            Radio Me weather is sponsored by A Big Financial Services Company call one eight hundred five five five one five one two to get your financial future on track. And now weather from %(weather_source)s:
+            </text>
+            <text type="intro" voice="bridget">
+            Let me read you some weather from: %(weather_source)s
+            </text>
+        </weather>
+        <appointments freq="1">
+            <text type="intro" voice="kate">
+            Now some appointment reminders 
+            </text>
+            <text type="intro" voice="kate">
+            Gotta nag you about some appointments on your calendar
+            </text>
+            <text type="intro" voice="kate">
+            I hope these radio me reminders are in time!
+            </text>
+        </appointments>
+    </block>
+</template>

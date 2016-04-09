@@ -1,0 +1,168 @@
+#!/usr/bin/python
+import xml.sax as sax
+import xml.sax.handler as handler
+from optparse import OptionParser
+import sys
+import pprint
+import re
+import codecs
+import os
+import MySQLdb
+import traceback
+from my_radio import normalize
+
+artist_cols = {
+"ALIAS": 40,
+"ASSOC": 1200,
+"BACKGND": 20,
+"BIRTHNAME": 30,
+"BORN": 30,
+"CAPTION": 80,
+"DIED": 20,
+"GENRE": 50,
+"IMAGE": 30,
+"INSTRUMENT": 30,
+"LABEL": 40,
+"MEMBERS": 1500,
+"NAME": 30,
+"NNAME": 30,
+"ORIGIN": 30,
+"PASTMEMB": 2500,
+"URL": 30,
+"VOICE": 20,
+"YEARS": 20,
+"XML": 132
+}
+
+album_cols = {
+"ARTIST": 30,
+"COVER": 40,
+"GENRE": 30,
+"LABEL": 30,
+"LASTALBUM": 40,
+"NAME": 80,
+"NNAME": 80,
+"NEXTALBUM": 40,
+"PRODUCER": 40,
+"RECORDED": 40,
+"RELEASED": 20,
+"REVIEW": 40,
+"XML":132,
+}
+
+def escape_value( value ):
+    return value.replace("'","\\'").replace('"','\\"')
+    
+def fixlist( namelist ):
+    nl = namelist.split(",")
+    ol = []
+    for n in nl:
+        if not n or n.startswith("("):
+            continue
+        else:
+            ol.append(normalize(n))
+    return ",".join(ol)
+    
+def fixname( name, norm=False ):
+    nl = name.split(",")
+    for n in nl:
+        if not n or  n.startswith("("):
+            continue
+        elif norm:
+            return normalize(n)
+        else:
+            return n
+
+class IndexHandler( handler.ContentHandler ):
+    def __init__(self,verbose = False):
+        handler.ContentHandler.__init__(self)
+        self.verbose = verbose
+        self.conn = MySQLdb.connect( host="localhost", user="root", passwd="wapa2006", db="MYRADIO", charset="utf8" )
+        self.cursor = self.conn.cursor()
+        self.path = ""
+        
+    def setPath( self, path ):
+        self.path = path
+        
+    def startElement( self,name,attrs):
+        if name == "Metadata":
+            mrtype = attrs['MYRADIOTYPE']
+            insert = "INSERT INTO "
+            if mrtype == "Album":
+                insert += "MYRADIO.ALBUMS"
+                col_map = album_cols
+            else:
+                insert += "MYRADIO.ARTISTS" 
+                col_map = artist_cols
+                
+            cols = "XML, "
+            values = "'%s', "%(escape_value(self.path))
+            for k in attrs.keys():
+                # fix attribute spelling error
+                colname = k       
+                if colname == 'MYRADIOTYPE':
+                    continue
+                if colname == "LASTABLUM":
+                    colname = "LASTALBUM"
+                if colname  == "NEXTABLUM":
+                    colname = "NEXTALBUM"
+                cols += "%s, "%(colname)
+                value = attrs[k]                      
+                if colname == "NAME":
+                    cols += "NNAME, "
+                    values += "'%s', "%(escape_value(fixname(value,True))[0:col_map[colname]])
+                    value = fixname(value,False)     
+                elif colname in [ "ASSOC","MEMBERS","PASTMEMB" ] :
+                    value = fixlist(value)
+                elif colname == "ARTIST":
+                    cols += "NARTIST, "
+                    values += "'%s', "%(escape_value(normalize(value))[0:col_map[colname]])
+                    
+                values += "'%s', "%(escape_value(value[0:col_map[colname]]))
+            insert += "( %s ) VALUES ( %s );"%(cols[:-2],values[:-2])
+            if self.verbose:
+                print insert.encode("utf8","ignore")
+            self.cursor.execute(insert)
+                    
+        
+    def characters( self, content):
+        pass
+        
+    def endElement( self,name):
+        pass
+            
+
+if __name__ == '__main__':
+    parser = OptionParser(usage="usage: %prog [options]", description="load music information into the database")
+    parser.add_option("-v","--verbose", dest="verbose", action="store_true", default=False, help="turn on debug output")
+    parser.add_option("-n","--number", dest="number", type="int", default=-1, help="number of entries to add, default -1 for all")
+    
+    (options,args) = parser.parse_args()
+    
+    if len(args) < 1:
+        sys.exit("Must specify at least one path with xml files")
+
+    errlog = open("xml_error.log","w")
+    handler = IndexHandler(options.verbose) 
+    number = options.number
+    for (dirpath, dirnames, filenames) in os.walk(args[0]):
+        if number == 0:
+            break
+        for f in filenames:
+            if re.match("^.*\.xml$",f):
+                if options.verbose:
+                    print "Process",dirpath,f
+                try:                           
+                    if number == 0:
+                        break
+                    if number > 0:
+                        number -= 1
+                    path = os.path.join(dirpath,f)
+                    handler.setPath(path)
+                    sax.parse(open(path), handler)
+                except Exception,e:
+                    print >>errlog,"File",os.path.join(dirpath,f),"Error",traceback.format_exc()
+                    print "File",os.path.join(dirpath,f),"Error",traceback.format_exc()
+    errlog.close()
+    handler.cursor.close()
+    handler.conn.close()

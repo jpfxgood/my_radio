@@ -1,0 +1,73 @@
+#!/usr/bin/python
+import xml.sax as sax
+import xml.sax.handler as handler
+from optparse import OptionParser
+import sys
+import pprint
+import re
+import codecs
+import os
+
+class IndexHandler( handler.ContentHandler ):
+    def __init__(self,verbose = False):
+        handler.ContentHandler.__init__(self)
+        self.verbose = verbose
+        self.summary = {}
+        self.maxlen = {}
+        self.sumlen = {}
+        self.common = {}
+        
+    def startElement(self,name,attrs):
+        if name == "Metadata":    
+            mrtype = attrs['MYRADIOTYPE']
+            for k in attrs.keys():
+                key = mrtype+"."+k
+                if key in self.summary:
+                    self.summary[key] += 1          
+                    self.sumlen[key] += len(attrs[k])   
+                    if len(attrs[k])/10 in self.common[key]:
+                        self.common[key][len(attrs[k])/10] += 1
+                    else:
+                        self.common[key][len(attrs[k])/10] = 1
+                    if len(attrs[k]) > self.maxlen[key]:
+                        self.maxlen[key] = len(attrs[k])
+                else:
+                    self.summary[key] = 1
+                    self.maxlen[key] = len(attrs[k])
+                    self.sumlen[key] = len(attrs[k])
+                    self.common[key] = {}
+                    self.common[key][len(attrs[k])/10] = 1
+        
+    def characters(self, content):
+        pass
+        
+    def endElement(self,name):
+        pass
+            
+
+if __name__ == '__main__':
+    parser = OptionParser(usage="usage: %prog [options]", description="index music information from xml files")
+    parser.add_option("-v","--verbose", dest="verbose", action="store_true", default=False, help="turn on debug output")
+    
+    (options,args) = parser.parse_args()
+    
+    if len(args) < 1:
+        sys.exit("Must specify at least one path with xml files")
+
+    errlog = open("xml_error.log","w")
+    handler = IndexHandler(options.verbose)
+    for (dirpath, dirnames, filenames) in os.walk(args[0]):
+        for f in filenames:
+            if re.match("^.*\.xml$",f):
+                if options.verbose:
+                    print "Process",dirpath,f
+                try:
+                    sax.parse(open(os.path.join(dirpath,f)), handler)
+                except Exception,e:
+                    print >>errlog,"File",os.path.join(dirpath,f),"Error",str(e)
+    errlog.close()
+    
+    outcsv = codecs.open("xml_index.csv","w","utf-8","replace")
+    for (key,count) in handler.summary.items():
+        print >>outcsv,'"%s",%d,%d,%f,"%s"'%(key,count,handler.maxlen[key],float(handler.sumlen[key])/count,str(handler.common[key]))
+    outcsv.close()

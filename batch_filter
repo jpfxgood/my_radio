@@ -1,0 +1,110 @@
+#!/usr/bin/python
+import os
+import sys
+import re
+import subprocess
+import threading
+import time
+from optparse import OptionParser
+
+class ProcessThread(threading.Thread):
+    """ Thread to run a post to solr """
+    pool = []
+    queue = []
+    lock = threading.Lock()
+    exit_if_queue_empty = False
+    verbose = False
+    
+    def __init__(self):
+        threading.Thread.__init__(self,None,self.doProcess)
+        self.start()
+        
+    @classmethod
+    def init_pool(cls, num_threads= 4, verbose = False):
+        ProcessThread.verbose = verbose
+        while( num_threads ):
+            cls.pool.append(ProcessThread())
+            num_threads = num_threads - 1
+            
+        
+    @classmethod
+    def finish(cls):
+        cls.exit_if_queue_empty = True
+        for thread in cls.pool:
+            thread.join()
+        
+    @classmethod
+    def done(cls):
+        return cls.exit_if_queue_empty
+
+    @classmethod
+    def pop(cls):
+        cls.lock.acquire()
+        try:
+            if not cls.queue:
+                return None
+            return cls.queue.pop(0)
+        finally:
+            cls.lock.release()
+                
+    @classmethod
+    def push(cls, pargs):
+        cls.lock.acquire()
+        try:
+            cls.queue.append(pargs)
+        finally:
+            cls.lock.release()
+            
+    @classmethod
+    def remaining(cls):
+        return len(cls.queue)
+
+    def doProcess(self):
+        while(True):         
+            process = ProcessThread.pop()
+            if not process:
+                if ProcessThread.done():
+                    return
+                time.sleep(0.1)
+            else:
+                try:
+                    if ProcessThread.verbose:
+                        print "Running",process
+                    subprocess.check_call(process[0]%process[1:],shell=True)
+                except Exception,e:
+                    print "Error",str(e)
+                    
+if __name__ == '__main__':
+    parser = OptionParser(usage="usage: %prog [options]", description="batch filter program arguments are comand_template, filepat, source_dir, dest_dir")
+    parser.add_option("-v","--verbose", dest="verbose", action="store_true", default=False, help="turn on debug output")
+    parser.add_option("-t","--threads", dest="threads", type="int", default=4, help="number of threads")
+
+    (options, args) = parser.parse_args()
+    
+
+    if len(args) < 4:
+        sys.exit("4 arguments required")
+        
+    cmd = args[0]
+    filepat = args[1]
+    source_dir = args[2]
+    if not os.path.exists(source_dir):
+        sys.exit("source_dir does not exist, %s"%(source_dir))
+        
+    dest_dir = args[3]
+    if not os.path.exists(dest_dir):
+        sys.exist("dest_dir does not exit, %s"%(dest_dir))
+        
+    if options.verbose:
+        print "Processing Batch:",cmd,filepat,source_dir,dest_dir
+        
+    ProcessThread.init_pool(options.threads,options.verbose)
+        
+    for (dirpath, dirnames, filenames) in os.walk(source_dir):
+        for f in filenames:
+            if re.match(filepat,f):            
+                if options.verbose:
+                    print "Queueing",dirpath,f
+                ProcessThread.push((cmd,os.path.join(dirpath,f),os.path.join(dest_dir,f)))
+                
+    ProcessThread.finish()

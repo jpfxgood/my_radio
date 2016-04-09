@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:tns="http://api.voiceforge.com/SOAPI" 
+targetNamespace="http://api.voiceforge.com/SOAPI"
+xmlns:impl="http://api.voiceforge.com/SOAPI"
+xmlns:intf="http://api.voiceforge.com/SOAPI"
+xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/"
+xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
+xmlns:http="http://schemas.xmlsoap.org/wsdl/http/"
+xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+
+<!-- Types -->
+
+  <wsdl:types>
+	  <xsd:schema elementFormDefault="qualified" targetNamespace="http://api.voiceforge.com/SOAPI">
+      
+      
+      <!-- Say -->
+      
+      <xsd:complexType name="ComplexTextInfo">
+        <xsd:sequence>
+          <xsd:element name="SynthString" type="xsd:string" />
+          <xsd:element minOccurs="0" maxOccurs="1" name="Encoding" type="xsd:string" />
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ComplexVoiceInfo">
+        <xsd:all>
+          <xsd:element name="Owner" type="xsd:string" />
+          <xsd:element name="Name" type="xsd:string" />
+        </xsd:all>
+      </xsd:complexType>
+	  
+      <xsd:complexType name="ComplexAudioInfo">
+        <xsd:all>
+          <xsd:element name="DeliveryType" type="xsd:string" />
+          <xsd:element name="Format" type="xsd:string" />
+          <xsd:element name="SignalRate" type="xsd:string" />
+        </xsd:all>
+      </xsd:complexType>
+	  
+      <xsd:complexType name="ComplexAudioData">
+        <xsd:all>
+          <xsd:element name="DeliveryType" type="xsd:string" />
+          <xsd:element name="Format" type="xsd:string" />
+          <xsd:element name="Data" type="xsd:string" />
+        </xsd:all>
+      </xsd:complexType>
+
+      
+      <!-- CreateAccount -->
+      
+      <xsd:complexType name="ComplexCreateUserInfo">
+        <xsd:all>
+          <xsd:element name="UserID" type="xsd:string" />
+          <xsd:element name="Password" type="xsd:string" />
+          <xsd:element name="DOB" type="xsd:string" />
+          <xsd:element name="Email" type="xsd:string" />
+          <xsd:element name="ZipCode" type="xsd:string" />
+          <xsd:element name="Gender" type="xsd:string" />
+        </xsd:all>
+      </xsd:complexType>
+      
+      
+      <!-- Voice Search -->
+      
+      <xsd:complexType name="ComplexQuery">
+        <xsd:all>
+          <xsd:element name="Owner" type="xsd:string" />
+          <xsd:element name="Name" type="xsd:string" />
+          <xsd:element name="Age" type="xsd:string" />
+          <xsd:element name="Gender" type="xsd:string" />
+          <xsd:element name="Language" type="xsd:string" />
+        </xsd:all>
+      </xsd:complexType>
+
+      <xsd:complexType name="ComplexQueryResult">
+        <xsd:all>
+          <xsd:element name="Owner" type="xsd:string" />
+          <xsd:element name="Name" type="xsd:string" />
+          <xsd:element name="Age" type="xsd:string" />
+          <xsd:element name="Gender" type="xsd:string" />
+          <xsd:element name="Language" type="xsd:string" />
+          <xsd:element name="Dialect" type="xsd:string" />
+        </xsd:all>
+      </xsd:complexType>
+      
+      <xsd:complexType name="ComplexQueryResultArray">
+        <xsd:sequence>
+          <xsd:element maxOccurs="unbounded" name="Voice" nillable="true" type="tns:ComplexQueryResult"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+    </xsd:schema>
+  </wsdl:types>
+  
+  
+  <!-- Messages -->
+  
+  <wsdl:message name="GetSessionIDSoapIN">
+    <wsdl:part name="ApplicationID" type="xsd:string" />
+    <wsdl:part name="UserID" type="xsd:string" />
+  </wsdl:message>
+  
+  <wsdl:message name="GetSessionIDSoapOUT">
+    <wsdl:part name="SessionID" type="xsd:string" />
+    <wsdl:part name="Error" type="xsd:string" />
+  </wsdl:message>
+  
+  <wsdl:message name="SaySoapIN">
+    <wsdl:part name="SessionID" type="xsd:string" />
+    <wsdl:part name="Text" type="tns:ComplexTextInfo" />
+    <wsdl:part name="VoiceInfo" type="tns:ComplexVoiceInfo" />
+    <wsdl:part name="AudioInfo" type="tns:ComplexAudioInfo" />
+  </wsdl:message>
+  
+  <wsdl:message name="SaySoapOUT">
+    <wsdl:part name="Audio" type="tns:ComplexAudioData" />
+    <wsdl:part name="Error" type="xsd:string" />
+  </wsdl:message>
+  
+  <wsdl:message name="CreateAccountSoapIN">
+    <wsdl:part name="ApplicationID" type="xsd:string" />
+    <wsdl:part name="UserInfo" type="tns:ComplexCreateUserInfo" />
+  </wsdl:message>
+  
+  <wsdl:message name="CreateAccountSoapOUT">
+    <wsdl:part name="UserID" type="xsd:string" />
+    <wsdl:part name="Error" type="xsd:string" />
+  </wsdl:message>
+  
+  <wsdl:message name="VoiceSearchSoapIN">
+    <wsdl:part name="SessionID" type="xsd:string" />
+    <wsdl:part name="Query" type="tns:ComplexQuery" />
+  </wsdl:message>
+  
+  <wsdl:message name="VoiceSearchSoapOUT">
+    <wsdl:part name="VoiceList" type="tns:ComplexQueryResultArray" />
+    <wsdl:part name="Error" type="xsd:string" />
+  </wsdl:message>
+  
+  <wsdl:message name="GetAccountInfoSoapIN">
+    <wsdl:part name="ApplicationID" type="xsd:string" />
+    <wsdl:part name="UserID" type="xsd:string" />
+  </wsdl:message>
+  
+  <wsdl:message name="GetAccountInfoSoapOUT">
+    <wsdl:part name="SynthesesRemaining" type="xsd:int" />
+    <wsdl:part name="DefaultVoiceInfo" type="tns:ComplexVoiceInfo" />
+    <wsdl:part name="Error" type="xsd:string" />
+  </wsdl:message>
+  
+  <wsdl:message name="UpdateAccountInfoSoapIN">
+    <wsdl:part name="ApplicationID" type="xsd:string" />
+    <wsdl:part name="UserID" type="xsd:string" />
+    <wsdl:part name="DefaultVoiceInfo" type="tns:ComplexVoiceInfo" />
+    <wsdl:part name="ModifySynthesisAmount" type="xsd:int" />
+  </wsdl:message>
+  
+  <wsdl:message name="UpdateAccountInfoSoapOUT">
+    <wsdl:part name="SynthesesRemaining" type="xsd:int" />
+    <wsdl:part name="DefaultVoiceInfo" type="tns:ComplexVoiceInfo" />
+    <wsdl:part name="Error" type="xsd:string" />
+  </wsdl:message>
+  
+  
+  <!-- Port Types -->
+  
+  <wsdl:portType name="VF-HTTPS-Binding">
+    <wsdl:operation name="GetSessionID">
+      <wsdl:input message="tns:GetSessionIDSoapIN" />
+      <wsdl:output message="tns:GetSessionIDSoapOUT" />
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccount">
+      <wsdl:input message="tns:CreateAccountSoapIN" />
+      <wsdl:output message="tns:CreateAccountSoapOUT" />
+    </wsdl:operation>
+    <wsdl:operation name="GetAccountInfo">
+      <wsdl:input message="tns:GetAccountInfoSoapIN" />
+      <wsdl:output message="tns:GetAccountInfoSoapOUT" />
+    </wsdl:operation>
+    <wsdl:operation name="UpdateAccountInfo">
+      <wsdl:input message="tns:UpdateAccountInfoSoapIN" />
+      <wsdl:output message="tns:UpdateAccountInfoSoapOUT" />
+    </wsdl:operation>
+  </wsdl:portType>
+  
+  <wsdl:portType name="VF-HTTP-Binding">
+    <wsdl:operation name="VoiceSearch">
+      <wsdl:input message="tns:VoiceSearchSoapIN" />
+      <wsdl:output message="tns:VoiceSearchSoapOUT" />
+    </wsdl:operation>
+    <wsdl:operation name="Say">
+      <wsdl:input message="tns:SaySoapIN" />
+      <wsdl:output message="tns:SaySoapOUT" />
+    </wsdl:operation>
+  </wsdl:portType>
+ 
+  
+  <!-- Bindings -->
+	 
+  <wsdl:binding name="VF-HTTPS-Binding" type="tns:VF-HTTPS-Binding">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc" />
+    <wsdl:operation name="GetSessionID" soapAction="http://api.voiceforge.com/SOAPI#GetSessionID">
+      <soap:operation soapAction="https://api.voiceforge.com/SOAPI#GetSessionID" RequestNamespace="https://api.voiceforge.com/SOAPI" ResponseNamespace="https://api.voiceforge.com/SOAPI" style="rpc" />
+      <wsdl:input>
+        <soap:body use="literal" namespace="https://api.voiceforge.com/SOAPI"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" namespace="https://api.voiceforge.com/SOAPI"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccount">
+      <soap:operation soapAction="https://api.voiceforge.com/SOAPI#CreateAccount" style="rpc" />
+      <wsdl:input>
+        <soap:body use="literal" namespace="https://api.voiceforge.com/SOAPI"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" namespace="https://api.voiceforge.com/SOAPI"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccountInfo">
+      <soap:operation soapAction="https://api.voiceforge.com/SOAPI#GetAccountInfo" style="rpc" />
+      <wsdl:input>
+        <soap:body use="literal" namespace="https://api.voiceforge.com/SOAPI"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" namespace="https://api.voiceforge.com/SOAPI"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateAccountInfo">
+      <soap:operation soapAction="https://api.voiceforge.com/SOAPI#UpdateAccountInfo" style="rpc" />
+      <wsdl:input>
+        <soap:body use="literal" namespace="https://api.voiceforge.com/SOAPI"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" namespace="https://api.voiceforge.com/SOAPI"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  
+  <wsdl:binding name="VF-HTTP-Binding" type="tns:VF-HTTP-Binding">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc" />
+    <wsdl:operation name="VoiceSearch">
+      <soap:operation soapAction="http://api.voiceforge.com/SOAPI#VoiceSearch" style="rpc" />
+      <wsdl:input>
+        <soap:body use="literal" namespace="http://api.voiceforge.com/SOAPI"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" namespace="http://api.voiceforge.com/SOAPI"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Say">
+      <soap:operation soapAction="http://api.voiceforge.com/SOAPI#Say" style="rpc" />
+      <wsdl:input>
+        <soap:body use="literal" namespace="http://api.voiceforge.com/SOAPI"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" namespace="http://api.voiceforge.com/SOAPI"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+
+  <!-- Services -->
+
+  <wsdl:service name="VoiceForgeAPI-S">
+    <wsdl:port name="VF-HTTPS" binding="tns:VF-HTTPS-Binding">
+      <wsdl:documentation>VoiceForge HTTPS Service</wsdl:documentation>
+      <soap:address location="https://api.voiceforge.com/soapi.pl" />
+    </wsdl:port>
+  </wsdl:service>
+  
+  <wsdl:service name="VoiceForgeAPI-I">
+    <wsdl:port name="VF-HTTP" binding="tns:VF-HTTP-Binding">
+      <wsdl:documentation>VoiceForge HTTP Service</wsdl:documentation>
+      <soap:address location="http://api.voiceforge.com/soapi.pl" />
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

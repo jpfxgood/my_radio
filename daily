@@ -1,0 +1,3 @@
+#!/bin/sh
+cd /home/james/proj_svn/branches/my_radio_br1
+./my_radio.py '-fgenre:(?!Jazz|Blues|Classical|Folk)' '-ftitle:(?!Conversation)' '-fartist:(?!Henry Rollins)' -v -s 2>&1 | tee /tmp/my_radio.log

@@ -1,0 +1,52 @@
+[ begin template ]
+    [ begin text type="intro"]
+    Welcome to radio me on %(day)s %(date)s.
+    [ end text]
+    [ begin text type="outro"]
+    That's all for today, thanks for listening to radio me on %(day)s %(date)s.
+    [ end text]
+    [ begin block repeat=4 ]
+        [ begin tracks repeat=4 ]
+            [ begin text type="intro" ]
+            Coming up next we're going to hear cuts from %(artist_list)s.
+            [ end text ]
+            [ begin text type="outro" ]
+            First up was %(title_0)s performed by %(artist_0)s on the album %(album_0)s, followed by %(artist_1)s performing %(title_1)s off the %(album_1)s,
+            then there was %(artist_2)s's cut %(title_2)s off of %(album_2)s, finally we heard %(artist_3)s doing %(title_3)s from their %(album_3)s recording.
+            [ end text ]
+            [ begin artist type="outro"]
+                [ begin text type="intro"]
+                Speaking of %(this_artist)s did you know that
+                [ end text]
+                [ begin text type="intro"]
+                An interesting thing about %(this_artist)s is 
+                [ end text]
+            [ end artist ]
+            [ begin track type="outro"]
+                [ begin text type="intro"]
+                About the recording of %(this_track)s by %(this_artist)s
+                [ end text ]
+            [ end track ]
+            [ begin album type="outro"]
+                [ begin text type="intro"]
+                About the album %(this_album)s
+                [ end text ]
+            [ end album ]
+        [ end tracks ]
+        [ begin news freq=2 ]
+            [ begin text type="intro" ]
+            And now some news from %(news_source)s
+            [ end text ]
+        [ end news ]
+        [ begin weather freq=2 ]
+            [ begin text type="intro" ]
+            The weather report from %(weather_source)s is
+            [ end text ]
+        [ end weather ]
+        [ begin appointments freq=1 ]
+            [ begin text type="intro" ]
+            Now some appointment reminders 
+            [ end text ]
+        [ end appointments ]
+    [ end block ]
+[ end template ]
